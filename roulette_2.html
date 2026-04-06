@@ -554,103 +554,99 @@ if(pending===0) cb();
 }
 
 function drawWheel(a=0){
-resizeCanvas();
-const s=canvas.width,cx=s/2,cy=s/2,r=s/2-5;
-ctx.clearRect(0,0,s,s);
-const active=prizes.filter(p=>p.remain>0);
-if(!active.length){ drawEmpty(s,cx,cy); return; }
-const N=active.length,sa=(Math.PI*2)/N;
+    resizeCanvas();
+    const s=canvas.width,cx=s/2,cy=s/2,r=s/2-5;
+    ctx.clearRect(0,0,s,s);
+    const active=prizes.filter(p=>p.remain>0);
+    if(!active.length){ drawEmpty(s,cx,cy); return; }
+    const N=active.length,sa=(Math.PI*2)/N;
 
-active.forEach((p,i)=>{
-const st=a+i*sa,en=st+sa;
+    active.forEach((p,i)=>{
+        const st=a+i*sa,en=st+sa;
 
-// 섹터 그리기
-ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,st,en); ctx.closePath();
-const mx=cx+Math.cos(st+sa/2)*r*.55,my=cy+Math.sin(st+sa/2)*r*.55;
-const g=ctx.createRadialGradient(mx,my,0,cx,cy,r);
-g.addColorStop(0,lighten(p.color,.20)); g.addColorStop(1,p.color);
-ctx.fillStyle=g; ctx.fill();
-ctx.strokeStyle='rgba(255,255,255,0.22)'; ctx.lineWidth=2; ctx.stroke();
+        // 섹터 그리기
+        ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,st,en); ctx.closePath();
+        const mx=cx+Math.cos(st+sa/2)*r*.55,my=cy+Math.sin(st+sa/2)*r*.55;
+        const g=ctx.createRadialGradient(mx,my,0,cx,cy,r);
+        g.addColorStop(0,lighten(p.color,.20)); g.addColorStop(1,p.color);
+        ctx.fillStyle=g; ctx.fill();
+        ctx.strokeStyle='rgba(255,255,255,0.22)'; ctx.lineWidth=2; ctx.stroke();
 
-const mid=st+sa/2;
+        const mid=st+sa/2;
 
-// ── 아이콘 이미지 (업로드된 경우)
-if(p.iconImg && iconCache[p.rank]){
-const circleR = r * 0.20; // 흰 원 반지름
-const iconR = circleR * 0.70; // 아이콘 = 흰 원의 70% (여백 확보)
-const dist = r * 0.60;
-const ix = cx + Math.cos(mid) * dist;
-const iy = cy + Math.sin(mid) * dist;
-ctx.save();
-ctx.translate(ix, iy);
-// 흰색 원 배경 (클립 없음 — 원 먼저 그리기)
-ctx.beginPath(); ctx.arc(0, 0, circleR, 0, Math.PI*2);
-ctx.fillStyle = 'rgba(255,255,255,0.96)';
-ctx.shadowColor = 'rgba(0,0,0,0.22)'; ctx.shadowBlur = 8;
-ctx.fill(); ctx.shadowBlur = 0;
-// 아이콘 이미지 — 클립 없이 drawImage로 비율 유지 축소
-const imgW = iconCache[p.rank].naturalWidth || iconCache[p.rank].width;
-const imgH = iconCache[p.rank].naturalHeight || iconCache[p.rank].height;
-const aspect = imgW && imgH ? imgW/imgH : 1;
-let dw, dh;
-if(aspect >= 1){ dw = iconR*2; dh = dw/aspect; }
-else { dh = iconR*2; dw = dh*aspect; }
-ctx.drawImage(iconCache[p.rank], -dw/2, -dh/2, dw, dh);
-ctx.restore();
-}
-// ── 이모지 (아이콘 없는 경우)
-else if(!p.iconImg){
-const circleR = r * 0.17;
-const dist = r * 0.63;
-const ex = cx + Math.cos(mid) * dist;
-const ey = cy + Math.sin(mid) * dist;
-ctx.save();
-ctx.translate(ex, ey);
-// 흰색 원 배경
-ctx.beginPath(); ctx.arc(0, 0, circleR, 0, Math.PI*2);
-ctx.fillStyle = 'rgba(255,255,255,0.90)';
-ctx.shadowColor = 'rgba(0,0,0,0.15)'; ctx.shadowBlur = 5;
-ctx.fill(); ctx.shadowBlur = 0;
-// 이모지
-ctx.rotate(mid + Math.PI/2);
-ctx.font = `${Math.max(10, circleR * 1.05)}px serif`;
-ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-ctx.fillText(p.emoji, 0, 0);
-ctx.restore();
-}
+        // ── [수정 핵심] 아이콘과 이모지 출력 로직 분리 ──
+        if(p.iconImg) {
+            // 아이콘 경로가 설정되어 있다면 이미지가 로드된 경우에만 그림 (이모지는 출력 안 함)
+            if(iconCache[p.rank]) {
+                const circleR = r * 0.20;
+                const iconR = circleR * 0.70;
+                const dist = r * 0.60;
+                const ix = cx + Math.cos(mid) * dist;
+                const iy = cy + Math.sin(mid) * dist;
+                ctx.save();
+                ctx.translate(ix, iy);
+                ctx.beginPath(); ctx.arc(0, 0, circleR, 0, Math.PI*2);
+                ctx.fillStyle = 'rgba(255,255,255,0.96)';
+                ctx.shadowColor = 'rgba(0,0,0,0.22)'; ctx.shadowBlur = 8;
+                ctx.fill(); ctx.shadowBlur = 0;
 
-// ── 등수 텍스트 (흰 원 아래쪽)
-if(p.showText!==false){
-// 아이콘 있을 때: 흰 원 아래 / 없을 때: 흰 원 아래
-const circleR = r * (p.iconImg ? 0.18 : 0.16);
-const dist = r * (p.iconImg ? 0.60 : 0.64);
-// 텍스트는 흰 원 중심보다 circleR*1.5 아래
-const textDist = dist + circleR * 1.6;
-const tx = cx + Math.cos(mid) * textDist;
-const ty = cy + Math.sin(mid) * textDist;
-ctx.save();
-ctx.translate(tx, ty);
-ctx.rotate(mid + Math.PI/2);
-const fs = Math.max(10, s * (p.fontSize||100)/100 * 0.033);
-ctx.font = `bold ${fs}px "Noto Sans KR",sans-serif`;
-ctx.fillStyle = '#fff';
-ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-ctx.shadowColor = 'rgba(0,0,0,0.75)'; ctx.shadowBlur = 5;
-ctx.fillText(p.rank, 0, 0);
-ctx.restore();
-}
-});
+                const imgW = iconCache[p.rank].naturalWidth || iconCache[p.rank].width;
+                const imgH = iconCache[p.rank].naturalHeight || iconCache[p.rank].height;
+                const aspect = imgW / imgH;
+                let dw, dh;
+                if(aspect >= 1){ dw = iconR*2; dh = dw/aspect; }
+                else { dh = iconR*2; dw = dh*aspect; }
+                ctx.drawImage(iconCache[p.rank], -dw/2, -dh/2, dw, dh);
+                ctx.restore();
+            }
+        } 
+        else if(p.emoji) {
+            // iconImg가 아예 비어있을 때만 이모지를 그림
+            const circleR = r * 0.17;
+            const dist = r * 0.63;
+            const ex = cx + Math.cos(mid) * dist;
+            const ey = cy + Math.sin(mid) * dist;
+            ctx.save();
+            ctx.translate(ex, ey);
+            ctx.beginPath(); ctx.arc(0, 0, circleR, 0, Math.PI*2);
+            ctx.fillStyle = 'rgba(255,255,255,0.90)';
+            ctx.shadowColor = 'rgba(0,0,0,0.15)'; ctx.shadowBlur = 5;
+            ctx.fill(); ctx.shadowBlur = 0;
+            ctx.rotate(mid + Math.PI/2);
+            ctx.font = `${Math.max(10, circleR * 1.05)}px serif`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(p.emoji, 0, 0);
+            ctx.restore();
+        }
 
-// 외곽 링
-ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
-ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.lineWidth=3; ctx.stroke();
+        // ── 등수 텍스트 (기존과 동일) ──
+        if(p.showText!==false){
+            const circleR = r * (p.iconImg ? 0.18 : 0.16);
+            const dist = r * (p.iconImg ? 0.60 : 0.64);
+            const textDist = dist + circleR * 1.6;
+            const tx = cx + Math.cos(mid) * textDist;
+            const ty = cy + Math.sin(mid) * textDist;
+            ctx.save();
+            ctx.translate(tx, ty);
+            ctx.rotate(mid + Math.PI/2);
+            const fs = Math.max(10, s * (p.fontSize||100)/100 * 0.033);
+            ctx.font = `bold ${fs}px "Noto Sans KR",sans-serif`;
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.shadowColor = 'rgba(0,0,0,0.75)'; ctx.shadowBlur = 5;
+            ctx.fillText(p.rank, 0, 0);
+            ctx.restore();
+        }
+    });
 
-// 중앙 원
-ctx.beginPath(); ctx.arc(cx,cy,s*.095,0,Math.PI*2);
-const cg=ctx.createRadialGradient(cx-s*.025,cy-s*.025,0,cx,cy,s*.095);
-cg.addColorStop(0,'#fff'); cg.addColorStop(1,'#c4d0ec');
-ctx.fillStyle=cg; ctx.shadowColor='rgba(0,0,0,0.35)'; ctx.shadowBlur=10; ctx.fill(); ctx.shadowBlur=0;
-ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=2; ctx.stroke();
+    // 외곽 링 및 중앙 원 (기존과 동일)
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.lineWidth=3; ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx,cy,s*.095,0,Math.PI*2);
+    const cg=ctx.createRadialGradient(cx-s*.025,cy-s*.025,0,cx,cy,s*.095);
+    cg.addColorStop(0,'#fff'); cg.addColorStop(1,'#c4d0ec');
+    ctx.fillStyle=cg; ctx.shadowColor='rgba(0,0,0,0.35)'; ctx.shadowBlur=10; ctx.fill(); ctx.shadowBlur=0;
+    ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=2; ctx.stroke();
 }
 
 function drawEmpty(s,cx,cy){
